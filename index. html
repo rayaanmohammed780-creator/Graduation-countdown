@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Graduation 🎓 BOOM</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+margin:0;
+font-family:Arial;
+text-align:center;
+color:white;
+background:linear-gradient(270deg,#4facfe,#00f2fe,#43e97b);
+background-size:600% 600%;
+animation:bg 10s ease infinite;
+overflow-x:hidden;
+}
+
+@keyframes bg{
+0%{background-position:0% 50%}
+50%{background-position:100% 50%}
+100%{background-position:0% 50%}
+}
+
+.box{display:inline-block;margin:8px;padding:12px;background:rgba(0,0,0,0.4);border-radius:12px}
+img{width:250px;margin-top:15px;border-radius:20px;height:250px;object-fit:cover}
+input{padding:10px;border-radius:8px;border:none;width:200px}
+button{padding:10px;margin:5px;border:none;border-radius:8px;cursor:pointer}
+.comment{background:rgba(0,0,0,0.3);margin:5px;padding:8px;border-radius:10px;max-width:300px;margin-left:auto;margin-right:auto}
+
+canvas{
+position:fixed;
+top:0;
+left:0;
+pointer-events:none;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🎓 Graduation Countdown 🎓</h1>
+
+<div>
+<div class="box"><span id="d"></span><br>Days</div>
+<div class="box"><span id="h"></span><br>Hours</div>
+<div class="box"><span id="m"></span><br>Min</div>
+<div class="box"><span id="s"></span><br>Sec</div>
+</div>
+
+<img id="img">
+
+<br>
+
+<button onclick="toggleMusic()">🎶 Music On/Off</button>
+
+<h2>💬 Live Comments</h2>
+
+<input id="msg" placeholder="Write message">
+<button onclick="send()">Send</button>
+
+<div id="comments"></div>
+
+<canvas id="confetti"></canvas>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase.js"></script>
+
+<script>
+
+/* 🎯 التاريخ */
+const gradDate = new Date("May 9, 2026 10:00:00").getTime();
+let started = false;
+
+/* ⏳ العد */
+setInterval(()=>{
+let now=new Date().getTime();
+let d=gradDate-now;
+
+document.getElementById("d").innerText=Math.floor(d/86400000);
+document.getElementById("h").innerText=Math.floor(d%86400000/3600000);
+document.getElementById("m").innerText=Math.floor(d%3600000/60000);
+document.getElementById("s").innerText=Math.floor(d%60000/1000);
+
+if(d<=0 && !started){
+started=true;
+startConfetti();
+}
+
+},1000);
+
+/* 🖼️ صور - تتغير مرة كل يوم */
+const images=[
+"https://drive.google.com/uc?export=download&id=14PFHSO1rLnyQWibqhxCjpi0xFKxmj4xq",
+"https://drive.google.com/uc?export=download&id=1nRWdPC9gFLxPFfTLNJUpIkBHHmNQfgvS",
+"https://drive.google.com/uc?export=download&id=1-pkm2FsJRPzMJIt-8p4hmX2MAJDbOAZI",
+"https://drive.google.com/uc?export=download&id=10xnUMko9-b4uZJ8FMmV3D-VNygmd7zTl",
+"https://drive.google.com/uc?export=download&id=1zwCLdpu_z9bSablL44hiv55XCMX0SkKz",
+"https://drive.google.com/uc?export=download&id=1M_asHerl21tCty3vtDr32ONItEWUAbSB",
+"https://drive.google.com/uc?export=download&id=1bG3zgh6nAljs8asy7efFDIYjVLRH-dXw",
+"https://drive.google.com/uc?export=download&id=1-gGE9Qa7Zt4hktqeDX2XqI16g_MZ2Hzt",
+"https://drive.google.com/uc?export=download&id=1zcwdz941kNjbIa6-oZ30I35aA3rHYKVU"
+];
+
+// جيب رقم اليوم الحالي (كم يوم مر من تاريخ ثابت عشان نحدد الصورة)
+const startDate = new Date("April 30, 2026").getTime();
+const today = new Date().getTime();
+const daysPassed = Math.floor((today - startDate) / 86400000);
+let currentImgIndex = daysPassed % images.length;
+if(currentImgIndex < 0) currentImgIndex = 0;
+
+function updateImage(){
+document.getElementById("img").src = images[currentImgIndex % images.length];
+currentImgIndex++;
+}
+updateImage();
+
+// تغيير الصورة كل 24 ساعة (86400000 مللي ثانية)
+setInterval(updateImage, 86400000);
+
+/* 🎶 موسيقى */
+let music = new Audio("https://cdn.pixabay.com/download/audio/2022/03/10/audio_c8c8f7d6c0.mp3");
+music.loop = true;
+
+function toggleMusic(){
+if(music.paused) {
+music.play();
+} else {
+music.pause();
+}
+}
+
+/* 🔥 Firebase */
+const firebaseConfig = {
+apiKey: "AIzaSyAAjD51KjXu7IWuYiUTkvwh8ikNN3yXFHw",
+authDomain: "graduation-countdown-51186.firebaseapp.com",
+databaseURL: "https://graduation-countdown-51186-default-rtdb.firebaseio.com",
+projectId: "graduation-countdown-51186"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database().ref("comments");
+
+/* 💬 إرسال */
+function send(){
+let v=document.getElementById("msg").value;
+if(!v)return;
+db.push({text:v});
+document.getElementById("msg").value="";
+}
+
+/* 💬 استقبال */
+db.on("child_added", snap=>{
+let d=document.createElement("div");
+d.className="comment";
+d.innerText="💬 " + snap.val().text;
+document.getElementById("comments").appendChild(d);
+document.getElementById("comments").scrollTop = document.getElementById("comments").scrollHeight;
+});
+
+/* 🎇 CONFETTI */
+const canvas=document.getElementById("confetti");
+const ctx=canvas.getContext("2d");
+canvas.width=window.innerWidth;
+canvas.height=window.innerHeight;
+
+let pieces=[];
+
+function startConfetti(){
+for(let i=0;i<200;i++){
+pieces.push({
+x:Math.random()*canvas.width,
+y:Math.random()*canvas.height,
+dy:Math.random()*3+2,
+size:Math.random()*6+2,
+color:`hsl(${Math.random()*360},100%,50%)`
+});
+}
+animate();
+}
+
+function animate(){
+ctx.clearRect(0,0,canvas.width,canvas.height);
+pieces.forEach(p=>{
+ctx.fillStyle=p.color;
+ctx.fillRect(p.x,p.y,p.size,p.size);
+p.y+=p.dy;
+if(p.y>canvas.height)p.y=0;
+});
+requestAnimationFrame(animate);
+}
+
+setTimeout(() => {
+if(!started) {
+for(let i=0;i<50;i++){
+pieces.push({
+x:Math.random()*canvas.width,
+y:Math.random()*canvas.height,
+dy:Math.random()*3+2,
+size:Math.random()*6+2,
+color:`hsl(${Math.random()*360},100%,50%)`
+});
+}
+animate();
+}
+}, 1000);
+
+</script>
+
+</body>
+</html>
